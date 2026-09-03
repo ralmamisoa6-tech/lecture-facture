@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Lecture de facture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --paper:#EEF0E6;
+    --panel:#FBFAF4;
+    --ink:#1C2B26;
+    --ink-soft:#5B6B62;
+    --line:#CBCFBC;
+    --line-strong:#9AA491;
+    --teal:#2F6E62;
+    --teal-soft:#E4EEE9;
+    --amber:#B4682B;
+    --amber-soft:#F5E7D8;
+    --red:#A23B2E;
+    --red-soft:#F5E0DB;
+  }
+
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--paper); font-family:'IBM Plex Sans', sans-serif;}
+
+  #facture-app{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'IBM Plex Sans', sans-serif;
+    min-height:640px;
+    padding:0;
+    overflow:hidden;
+  }
+
+  /* ---------- Login screen ---------- */
+  .fa-login-wrap{
+    min-height:640px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:24px;
+  }
+  .fa-login-card{
+    width:100%;
+    max-width:360px;
+    background:var(--panel);
+    border:1px solid var(--line);
+    padding:36px 32px;
+  }
+  .fa-login-card h1{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:24px;
+    margin:0 0 6px 0;
+  }
+  .fa-login-card p{
+    font-size:13.5px;
+    color:var(--ink-soft);
+    margin:0 0 26px 0;
+    line-height:1.55;
+  }
+  .fa-field{margin-bottom:16px;}
+  .fa-field label{
+    display:block;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--ink-soft);
+    margin-bottom:6px;
+  }
+  .fa-field input{
+    width:100%;
+    padding:10px 12px;
+    border:1px solid var(--line-strong);
+    background:#fff;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14px;
+    color:var(--ink);
+  }
+  .fa-field input:focus{outline:2px solid var(--teal); outline-offset:-1px;}
+  .fa-login-btn{
+    width:100%;
+    margin-top:6px;
+    padding:11px 16px;
+    background:var(--ink);
+    color:var(--paper);
+    border:none;
+    font-size:14px;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-weight:500;
+    cursor:pointer;
+  }
+  .fa-login-btn:hover{background:#0f1814;}
+  .fa-login-btn:disabled{opacity:0.6; cursor:default;}
+  .fa-login-error{
+    margin-top:14px;
+    border:1px solid var(--red);
+    background:var(--red-soft);
+    color:var(--red);
+    padding:10px 12px;
+    font-size:13px;
+    line-height:1.5;
+  }
+
+  /* ---------- App shell ---------- */
+  .fa-shell{
+    display:flex;
+    min-height:640px;
+  }
+
+  .fa-side{
+    width:300px;
+    flex-shrink:0;
+    background:var(--ink);
+    color:var(--paper);
+    padding:28px 24px;
+    display:flex;
+    flex-direction:column;
+  }
+  @media (max-width:760px){
+    .fa-shell{flex-direction:column;}
+    .fa-side{width:100%;}
+  }
+
+  .fa-brand{
+    font-family:'Fraunces', serif;
+    font-size:22px;
+    font-weight:500;
+    letter-spacing:0.2px;
+    margin:0 0 4px 0;
+  }
+  .fa-brand-sub{
+    font-size:12.5px;
+    color:#B9C4BC;
+    margin:0 0 20px 0;
+    line-height:1.5;
+  }
+
+  .fa-user-bar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    padding:10px 12px;
+    background:rgba(255,255,255,0.05);
+    border:1px solid #3A473F;
+    margin-bottom:20px;
+  }
+  .fa-user-name{
+    font-size:12.5px;
+    color:#D9E4DC;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  .fa-logout-btn{
+    background:none;
+    border:none;
+    color:#9FAFA6;
+    font-size:12px;
+    cursor:pointer;
+    text-decoration:underline;
+    flex-shrink:0;
+    font-family:'IBM Plex Sans', sans-serif;
+  }
+  .fa-logout-btn:hover{color:#fff;}
+
+  .fa-drop{
+    border:1px dashed #4B5B52;
+    border-radius:2px;
+    padding:22px 16px;
+    text-align:center;
+    cursor:pointer;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .fa-drop:hover, .fa-drop.fa-drag{
+    border-color:#8FB0A2;
+    background:rgba(255,255,255,0.03);
+  }
+  .fa-drop svg{margin-bottom:10px;}
+  .fa-drop-title{font-size:14px; font-weight:500; margin:0 0 4px 0;}
+  .fa-drop-sub{font-size:12px; color:#9FAFA6; margin:0;}
+  #fa-file-input{display:none;}
+
+  .fa-code-hint{
+    margin-top:20px;
+    padding-top:18px;
+    border-top:1px solid #3A473F;
+    font-size:12px;
+    line-height:1.6;
+    color:#AEB9B0;
+  }
+  .fa-code-hint b{color:var(--paper); font-weight:500;}
+  .fa-code-hint code{
+    font-family:'IBM Plex Mono', monospace;
+    background:rgba(255,255,255,0.06);
+    padding:1px 5px;
+    border-radius:2px;
+    color:#D9E4DC;
+  }
+
+  .fa-list-label{
+    margin-top:28px;
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:#8CA096;
+  }
+
+  .fa-list{
+    margin-top:10px;
+    display:flex;
+    flex-direction:column;
+    gap:2px;
+    overflow-y:auto;
+    flex:1;
+  }
+  .fa-list-empty{
+    font-size:12.5px;
+    color:#7E9086;
+    line-height:1.6;
+    padding:6px 0;
+  }
+  .fa-list-item{
+    background:transparent;
+    border:none;
+    border-left:2px solid transparent;
+    text-align:left;
+    color:#D9E4DC;
+    padding:9px 10px;
+    font-size:13px;
+    cursor:pointer;
+    font-family:'IBM Plex Mono', monospace;
+    border-radius:0;
+    width:100%;
+  }
+  .fa-list-item:hover{background:rgba(255,255,255,0.04);}
+  .fa-list-item.fa-active{
+    border-left-color:var(--amber);
+    background:rgba(255,255,255,0.06);
+    color:#fff;
+  }
+  .fa-list-item .fa-li-month{
+    display:block;
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:11px;
+    color:#8CA096;
+    margin-top:2px;
+  }
+
+  /* ---------- Main ---------- */
+  .fa-main{
+    flex:1;
+    padding:34px 44px;
+    overflow-y:auto;
+    min-width:0;
+  }
+
+  .fa-empty{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:flex-start;
+    justify-content:center;
+    max-width:440px;
+    color:var(--ink-soft);
+  }
+  .fa-empty h2{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:26px;
+    color:var(--ink);
+    margin:0 0 10px 0;
+  }
+  .fa-empty p{font-size:14.5px; line-height:1.65; margin:0;}
+
+  .fa-loading{
+    height:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    color:var(--ink-soft);
+    gap:14px;
+  }
+  .fa-spinner{
+    width:26px; height:26px;
+    border:2.5px solid var(--line);
+    border-top-color:var(--amber);
+    border-radius:50%;
+    animation:fa-spin 0.8s linear infinite;
+  }
+  @keyframes fa-spin{to{transform:rotate(360deg);}}
+  .fa-loading-text{font-size:13.5px;}
+
+  .fa-error{
+    border:1px solid var(--red);
+    background:var(--red-soft);
+    color:var(--red);
+    padding:16px 18px;
+    font-size:13.5px;
+    line-height:1.6;
+    max-width:520px;
+    margin-top:20px;
+  }
+
+  /* Result header */
+  .fa-doc-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-end;
+    border-bottom:1px solid var(--line-strong);
+    padding-bottom:18px;
+    margin-bottom:26px;
+    gap:20px;
+    flex-wrap:wrap;
+  }
+  .fa-doc-num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12.5px;
+    color:var(--ink-soft);
+    margin:0 0 6px 0;
+    letter-spacing:0.02em;
+  }
+  .fa-doc-title{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:28px;
+    margin:0;
+    line-height:1.15;
+  }
+  .fa-doc-amount{
+    text-align:right;
+  }
+  .fa-doc-amount-label{
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--ink-soft);
+    margin:0 0 4px 0;
+  }
+  .fa-doc-amount-value{
+    font-family:'Fraunces', serif;
+    font-weight:500;
+    font-size:30px;
+    color:var(--amber);
+    margin:0;
+  }
+
+  .fa-section{
+    display:flex;
+    gap:18px;
+    padding:20px 0;
+    border-bottom:1px solid var(--line);
+  }
+  .fa-section:last-child{border-bottom:none;}
+  .fa-section-num{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--ink-soft);
+    width:20px;
+    flex-shrink:0;
+    padding-top:2px;
+  }
+  .fa-section-icon{
+    font-size:17px;
+    width:22px;
+    flex-shrink:0;
+    text-align:center;
+    padding-top:1px;
+  }
+  .fa-section-body{flex:1; min-width:0;}
+  .fa-section-label{
+    font-size:11.5px;
+    text-transform:uppercase;
+    letter-spacing:0.06em;
+    color:var(--ink-soft);
+    margin:0 0 6px 0;
+  }
+  .fa-section-value{
+    font-size:15px;
+    line-height:1.6;
+    margin:0;
+    color:var(--ink);
+  }
+  .fa-section-value.fa-mono{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13.5px;
+  }
+  .fa-tag{
+    display:inline-block;
+    font-size:11.5px;
+    padding:2px 8px;
+    border-radius:2px;
+    margin-left:8px;
+    font-family:'IBM Plex Sans', sans-serif;
+    vertical-align:1px;
+  }
+  .fa-tag-prorata{background:var(--amber-soft); color:var(--amber);}
+  .fa-tag-ok{background:var(--teal-soft); color:var(--teal);}
+  .fa-tag-alert{background:var(--red-soft); color:var(--red);}
+
+  .fa-reset{
+    margin-top:28px;
+    background:none;
+    border:1px solid var(--line-strong);
+    color:var(--ink-soft);
+    padding:9px 16px;
+    font-size:13px;
+    font-family:'IBM Plex Sans', sans-serif;
+    cursor:pointer;
+    border-radius:2px;
+  }
+  .fa-reset:hover{border-color:var(--ink); color:var(--ink);}
+</style>
+</head>
+<body>
+
+<div id="facture-app"></div>
+
+<script>
+(function(){
+  const appRoot = document.getElementById('facture-app');
+  let session = null; // { login, password, nom, role }
+
+  try {
+    const saved = sessionStorage.getItem('fa-session');
+    if (saved) session = JSON.parse(saved);
+  } catch (e) { /* ignore */ }
+
+  function escapeHtml(str){
+    if (typeof str !== 'string') return '';
+    return str.replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  }
+
+  // ============== LOGIN SCREEN ==============
+  function renderLogin(errorMsg){
+    appRoot.innerHTML = `
+      <div class="fa-login-wrap">
+        <div class="fa-login-card">
+          <h1>Lecture de facture</h1>
+          <p>Connecte-toi avec ton identifiant pour déposer une facture et consulter ton historique de lecture.</p>
+          <form id="fa-login-form">
+            <div class="fa-field">
+              <label for="fa-login">Identifiant</label>
+              <input type="text" id="fa-login" autocomplete="username" required />
+            </div>
+            <div class="fa-field">
+              <label for="fa-password">Mot de passe</label>
+              <input type="password" id="fa-password" autocomplete="current-password" required />
+            </div>
+            <button type="submit" class="fa-login-btn" id="fa-login-btn">Se connecter</button>
+            ${errorMsg ? `<div class="fa-login-error">${escapeHtml(errorMsg)}</div>` : ''}
+          </form>
+        </div>
+      </div>`;
+
+    document.getElementById('fa-login-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const login = document.getElementById('fa-login').value.trim();
+      const password = document.getElementById('fa-password').value;
+      const btn = document.getElementById('fa-login-btn');
+      btn.disabled = true;
+      btn.textContent = 'Connexion…';
+      try {
+        const res = await fetch('/.netlify/functions/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ login, password })
+        });
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || !body.ok) {
+          renderLogin(body.error || 'Identifiant ou mot de passe incorrect.');
+          return;
+        }
+        session = { login, password, nom: body.nom, role: body.role };
+        sessionStorage.setItem('fa-session', JSON.stringify(session));
+        renderApp();
+      } catch (err) {
+        renderLogin("Connexion impossible. Vérifie ta connexion internet et réessaie.");
+      }
+    });
+  }
+
+  function logout(){
+    session = null;
+    sessionStorage.removeItem('fa-session');
+    renderLogin();
+  }
+
+  // ============== MAIN APP ==============
+  let invoices = []; // {id, filename, data}
+  let activeId = null;
+
+  function renderApp(){
+    appRoot.innerHTML = `
+      <div class="fa-shell">
+        <aside class="fa-side">
+          <p class="fa-brand">Lecture de facture</p>
+          <p class="fa-brand-sub">Déposez une facture PDF, obtenez le mois, le montant et le détail expliqués simplement.</p>
+
+          <div class="fa-user-bar">
+            <span class="fa-user-name">${escapeHtml(session.nom || session.login)}</span>
+            <button class="fa-logout-btn" id="fa-logout">Déconnexion</button>
+          </div>
+
+          <div class="fa-drop" id="fa-drop">
+            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" style="margin:0 auto 10px auto;display:block;">
+              <path d="M12 3v12M12 3l-4 4M12 3l4 4" stroke="#B9C4BC" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M4 15v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3" stroke="#B9C4BC" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <p class="fa-drop-title">Déposer un PDF</p>
+            <p class="fa-drop-sub">ou cliquer pour parcourir</p>
+          </div>
+          <input type="file" id="fa-file-input" accept="application/pdf" />
+
+          <div class="fa-code-hint">
+            <b>Numérotation des factures</b><br/>
+            Format <code>F AAMM xxxxxx</code><br/>
+            Ex. <code>F2507xxxxxx</code> → facture de <b>juillet 2025</b>.
+          </div>
+
+          <p class="fa-list-label">Historique (privé)</p>
+          <div class="fa-list" id="fa-list">
+            <p class="fa-list-empty">Chargement…</p>
+          </div>
+        </aside>
+
+        <main class="fa-main" id="fa-main">
+          <div class="fa-loading">
+            <div class="fa-spinner"></div>
+            <p class="fa-loading-text">Chargement de ton historique…</p>
+          </div>
+        </main>
+      </div>`;
+
+    document.getElementById('fa-logout').addEventListener('click', logout);
+
+    const dropZone = document.getElementById('fa-drop');
+    const fileInput = document.getElementById('fa-file-input');
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('fa-drag'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('fa-drag'));
+    dropZone.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropZone.classList.remove('fa-drag');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+    fileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+      fileInput.value = '';
+    });
+
+    loadHistory();
+  }
+
+  async function loadHistory(){
+    try {
+      const res = await fetch('/.netlify/functions/history', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ login: session.login, password: session.password })
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 401) { logout(); return; }
+        throw new Error(body.error || 'Erreur de chargement');
+      }
+      invoices = (body.items || []).map((item, i) => ({ id: 'h' + i + '-' + (item.addedAt || i), filename: item.filename || '', data: item.data }));
+      activeId = null;
+      renderList();
+      renderMainEmpty();
+    } catch (err) {
+      const el = listEl();
+      if (el) el.innerHTML = '<p class="fa-list-empty">Historique indisponible pour le moment.</p>';
+      renderMainEmpty();
+    }
+  }
+
+  function mainEl(){ return document.getElementById('fa-main'); }
+  function listEl(){ return document.getElementById('fa-list'); }
+
+  function fileToBase64(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = () => reject(new Error('Lecture du fichier impossible'));
+      reader.readAsDataURL(file);
+    });
+  }
+
+  async function handleFile(file){
+    if (file.type !== 'application/pdf' && !file.name.toLowerCase().endsWith('.pdf')) {
+      renderError("Ce fichier n'est pas un PDF. Merci de déposer une facture au format PDF.");
+      return;
+    }
+
+    renderLoading();
+
+    try {
+      const base64 = await fileToBase64(file);
+      const parsed = await analyzeInvoice(base64, file.name);
+      const record = { id: 'new' + Date.now(), filename: file.name, data: parsed };
+      invoices.unshift(record);
+      activeId = record.id;
+      renderList();
+      renderResult(record);
+    } catch (err) {
+      console.error(err);
+      if (err.message === 'UNAUTHORIZED') { logout(); return; }
+      renderError("La lecture de cette facture a échoué. Vérifiez que le PDF est lisible puis réessayez. (" + err.message + ")");
+    }
+  }
+
+  async function analyzeInvoice(base64Pdf, filename){
+    // L'appel part vers notre propre fonction Netlify (/.netlify/functions/analyze),
+    // qui vérifie l'identité, détient la clé API Gemini côté serveur, interroge l'API
+    // et enregistre le résultat dans l'historique privé de la personne connectée.
+    const response = await fetch("/.netlify/functions/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ base64Pdf, filename, login: session.login, password: session.password })
+    });
+
+    if (response.status === 401) throw new Error('UNAUTHORIZED');
+
+    if (!response.ok) {
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody.error || ("Erreur serveur (" + response.status + ")"));
+    }
+
+    const data = await response.json();
+    const textBlock = (data.content || []).find(b => b.type === 'text');
+    if (!textBlock) throw new Error("Réponse vide");
+
+    let clean = textBlock.text.trim().replace(/^```json/i, '').replace(/^```/, '').replace(/```$/, '').trim();
+    let parsed;
+    try {
+      parsed = JSON.parse(clean);
+    } catch (e) {
+      const match = clean.match(/\{[\s\S]*\}/);
+      if (match) {
+        try { parsed = JSON.parse(match[0]); } catch (e2) { /* ignore */ }
+      }
+      if (!parsed) throw new Error("Format de réponse inattendu");
+    }
+    return parsed;
+  }
+
+  function renderLoading(){
+    mainEl().innerHTML = `
+      <div class="fa-loading">
+        <div class="fa-spinner"></div>
+        <p class="fa-loading-text">Lecture de la facture en cours…</p>
+      </div>`;
+  }
+
+  function renderMainEmpty(){
+    mainEl().innerHTML = `
+      <div class="fa-empty">
+        <h2>Comprendre une facture, sans jargon</h2>
+        <p>Déposez le PDF d'une facture dans la barre de gauche. Le mois, le numéro, le montant à payer, la durée couverte et les éventuels frais seront extraits et expliqués en clair. Ton historique reste privé : personne d'autre ne peut le consulter.</p>
+      </div>`;
+  }
+
+  function renderError(message){
+    mainEl().innerHTML = `
+      <div class="fa-empty">
+        <h2>Comprendre une facture, sans jargon</h2>
+        <p>Déposez le PDF d'une facture dans la barre de gauche.</p>
+        <div class="fa-error">${escapeHtml(message)}</div>
+      </div>`;
+  }
+
+  function renderList(){
+    const el = listEl();
+    if (!el) return;
+    if (invoices.length === 0) {
+      el.innerHTML = '<p class="fa-list-empty">Aucune facture pour l\'instant.</p>';
+      return;
+    }
+    el.innerHTML = invoices.map(inv => {
+      const active = inv.id === activeId ? 'fa-active' : '';
+      const num = (inv.data && inv.data.numero_facture) || inv.filename || '—';
+      const mois = (inv.data && inv.data.mois_facture) || '';
+      return `<button class="fa-list-item ${active}" data-id="${inv.id}">${escapeHtml(num)}<span class="fa-li-month">${escapeHtml(mois)}</span></button>`;
+    }).join('');
+
+    el.querySelectorAll('.fa-list-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rec = invoices.find(i => i.id === btn.dataset.id);
+        if (rec) { activeId = rec.id; renderList(); renderResult(rec); }
+      });
+    });
+  }
+
+  function isProrata(text){
+    if (!text) return false;
+    const t = text.toLowerCase();
+    return t.includes('prorata') || t.includes('partiel');
+  }
+
+  function hasFrais(text){
+    if (!text) return false;
+    const t = text.toLowerCase();
+    return !(t.includes('aucun frais') || t.includes('aucune régularisation') || t.includes('rien'));
+  }
+
+  function renderResult(record){
+    const d = record.data || {};
+    const prorataTag = isProrata(d.duree_periode) ? '<span class="fa-tag fa-tag-prorata">Prorata</span>' : '';
+    const fraisAlert = hasFrais(d.frais_regularisations);
+
+    mainEl().innerHTML = `
+      <div class="fa-doc-head">
+        <div>
+          <p class="fa-doc-num">${escapeHtml(d.numero_facture || record.filename || '')}</p>
+          <h1 class="fa-doc-title">${escapeHtml(d.mois_facture || 'Facture')}</h1>
+        </div>
+        <div class="fa-doc-amount">
+          <p class="fa-doc-amount-label">À payer</p>
+          <p class="fa-doc-amount-value">${escapeHtml(d.montant_total || '—')}</p>
+        </div>
+      </div>
+
+      <div class="fa-section">
+        <span class="fa-section-num">01</span>
+        <span class="fa-section-icon">📅</span>
+        <div class="fa-section-body">
+          <p class="fa-section-label">Mois de la facture</p>
+          <p class="fa-section-value">${escapeHtml(d.mois_facture || '—')}</p>
+        </div>
+      </div>
+
+      <div class="fa-section">
+        <span class="fa-section-num">02</span>
+        <span class="fa-section-icon">🔢</span>
+        <div class="fa-section-body">
+          <p class="fa-section-label">Interprétation du numéro</p>
+          <p class="fa-section-value fa-mono">${escapeHtml(d.numero_facture || '—')}</p>
+          <p class="fa-section-value">${escapeHtml(d.interpretation_numero || '—')}</p>
+        </div>
+      </div>
+
+      <div class="fa-section">
+        <span class="fa-section-num">03</span>
+        <span class="fa-section-icon">🧾</span>
+        <div class="fa-section-body">
+          <p class="fa-section-label">Explication de la facture</p>
+          <p class="fa-section-value">${escapeHtml(d.explication || '—')}</p>
+        </div>
+      </div>
+
+      <div class="fa-section">
+        <span class="fa-section-num">04</span>
+        <span class="fa-section-icon">⏳</span>
+        <div class="fa-section-body">
+          <p class="fa-section-label">Durée couverte ${prorataTag}</p>
+          <p class="fa-section-value">${escapeHtml(d.duree_periode || '—')}</p>
+        </div>
+      </div>
+
+      <div class="fa-section">
+        <span class="fa-section-num">05</span>
+        <span class="fa-section-icon">💰</span>
+        <div class="fa-section-body">
+          <p class="fa-section-label">Montant total à payer</p>
+          <p class="fa-section-value">${escapeHtml(d.montant_total || '—')}</p>
+        </div>
+      </div>
+
+      <div class="fa-section">
+        <span class="fa-section-num">06</span>
+        <span class="fa-section-icon">📆</span>
+        <div class="fa-section-body">
+          <p class="fa-section-label">Date limite de paiement</p>
+          <p class="fa-section-value">${escapeHtml(d.date_limite_paiement || '—')}</p>
+        </div>
+      </div>
+
+      <div class="fa-section">
+        <span class="fa-section-num">07</span>
+        <span class="fa-section-icon">💳</span>
+        <div class="fa-section-body">
+          <p class="fa-section-label">Mode de règlement</p>
+          <p class="fa-section-value">${escapeHtml(d.mode_reglement || '—')}</p>
+        </div>
+      </div>
+
+      <div class="fa-section">
+        <span class="fa-section-num">08</span>
+        <span class="fa-section-icon">⚠️</span>
+        <div class="fa-section-body">
+          <p class="fa-section-label">Frais, régularisations ou impayés ${fraisAlert ? '<span class="fa-tag fa-tag-alert">À vérifier</span>' : '<span class="fa-tag fa-tag-ok">Rien à signaler</span>'}</p>
+          <p class="fa-section-value">${escapeHtml(d.frais_regularisations || '—')}</p>
+        </div>
+      </div>
+
+      ${d.virement_rejet_paiement ? `
+      <div class="fa-section">
+        <span class="fa-section-num">09</span>
+        <span class="fa-section-icon">🏦</span>
+        <div class="fa-section-body">
+          <p class="fa-section-label">Virement bancaire &amp; rejet de paiement <span class="fa-tag fa-tag-ok">Annulation automatique</span></p>
+          <p class="fa-section-value">${escapeHtml(d.virement_rejet_paiement)}</p>
+        </div>
+      </div>` : ''}
+
+      <button class="fa-reset" id="fa-new">Déposer une autre facture</button>
+    `;
+
+    document.getElementById('fa-new').addEventListener('click', () => document.getElementById('fa-file-input').click());
+  }
+
+  // ============== BOOT ==============
+  if (session && session.login && session.password) {
+    renderApp();
+  } else {
+    renderLogin();
+  }
+})();
+</script>
+</body>
+</html>
