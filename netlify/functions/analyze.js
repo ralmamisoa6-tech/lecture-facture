@@ -64,9 +64,19 @@ exports.handler = async function (event) {
     return { statusCode: 400, body: JSON.stringify({ error: 'Aucun PDF reçu' }) };
   }
 
-  try {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+  // Petits utilitaires : nouvelle tentative automatique en cas de surcharge temporaire
+  // du modèle (erreur 503 "overloaded"/"high demand"), avec un modèle de secours si besoin.
+  const MODEL_CANDIDATES = [GEMINI_MODEL, 'gemini-2.5-flash-lite', 'gemini-2.0-flash'];
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+  function isOverloaded(status, data){
+    if (status === 503) return true;
+    const msg = ((data && data.error && data.error.message) || '').toLowerCase();
+    return msg.includes('overloaded') || msg.includes('high demand') || msg.includes('unavailable');
+  }
+
+  async function callGemini(model){
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -93,8 +103,33 @@ exports.handler = async function (event) {
         }
       })
     });
+    const data = await response.json().catch(() => ({}));
+    return { ok: response.ok, status: response.status, data };
+  }
 
-    const data = await response.json();
+  try {
+    let lastResult = null;
+
+    outer:
+    for (const model of MODEL_CANDIDATES) {
+      // jusqu'à 2 tentatives par modèle avant de passer au modèle de secours suivant
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        const result = await callGemini(model);
+        lastResult = result;
+
+        if (result.ok) break outer;
+
+        if (isOverloaded(result.status, result.data)) {
+          await sleep(1500 * attempt); // 1.5s puis 3s avant de réessayer
+          continue;
+        }
+        // Erreur non liée à une surcharge (ex. clé invalide, PDF refusé) : inutile de réessayer.
+        break outer;
+      }
+    }
+
+    const response = { ok: lastResult.ok, status: lastResult.status };
+    const data = lastResult.data;
 
     if (!response.ok) {
       return {
