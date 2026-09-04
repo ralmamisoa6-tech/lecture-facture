@@ -28,7 +28,7 @@ Si une information est réellement introuvable dans le document, ne l'invente ja
 // Modèle Flash gratuit (les noms de modèles Gemini évoluent souvent —
 // si ce nom devient obsolète, vérifier le modèle Flash courant sur
 // https://ai.google.dev/gemini-api/docs/models et le remplacer ici).
-const GEMINI_MODEL = 'gemini-3.5-flash';
+const GEMINI_MODEL = 'gemini-2.5-flash-lite';
 
 const MAX_HISTORY_PER_USER = 200; // on garde les 200 dernières lectures par personne
 
